@@ -10,7 +10,7 @@ import { stripe } from "@/lib/stripe";
   open cmd: go to stripe.exe copy address
   cd address
   stripe login (if for first time)
-  stripe listen --forward-to localhost:3000api/webhooks
+  stripe listen --forward-to localhost:3000/api/webhooks
 */
 }
 export const POST = async (req: NextRequest) => {
