@@ -4,6 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import toast from "react-hot-toast";
 
 import { Separator } from "../ui/separator";
 import { Button } from "@/components/ui/button";
@@ -18,8 +20,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "../ui/textarea";
 import ImageUpload from "../custom ui/ImageUpload";
-import { useState } from "react";
-import toast from "react-hot-toast";
 import Delete from "../custom ui/Delete";
 
 const formSchema = z.object({
@@ -29,12 +29,11 @@ const formSchema = z.object({
 });
 
 interface CollectionFormProps {
-  initialData?: CollectionType | null; //Must have "?" to make it optional
+  initialData?: CollectionType | null;
 }
 
 const CollectionForm: React.FC<CollectionFormProps> = ({ initialData }) => {
   const router = useRouter();
-
   const [loading, setLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -59,24 +58,33 @@ const CollectionForm: React.FC<CollectionFormProps> = ({ initialData }) => {
   };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    setLoading(true);
     try {
-      setLoading(true);
       const url = initialData
         ? `/api/collections/${initialData._id}`
         : "/api/collections";
       const res = await fetch(url, {
-        method: "POST",
+        method: initialData ? "PUT" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(values),
       });
-      if (res.ok) {
-        setLoading(false);
-        toast.success(`Collection ${initialData ? "updated" : "created"}`);
-        window.location.href = "/collections";
-        router.push("/collections");
+
+      if (!res.ok) {
+        throw new Error("Failed to create/update collection");
       }
+
+      const data = await res.json();
+      toast.success(
+        `Collection ${initialData ? "updated" : "created"} successfully`
+      );
+      router.push("/collections");
     } catch (err) {
-      console.log("[collections_POST]", err);
+      console.error("[collections_POST]", err);
       toast.error("Something went wrong! Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -146,8 +154,12 @@ const CollectionForm: React.FC<CollectionFormProps> = ({ initialData }) => {
             )}
           />
           <div className="flex gap-10">
-            <Button type="submit" className="bg-blue-1 text-white">
-              Submit
+            <Button
+              type="submit"
+              className="bg-blue-1 text-white"
+              disabled={loading}
+            >
+              {loading ? "Submitting..." : "Submit"}
             </Button>
             <Button
               type="button"
